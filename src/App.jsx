@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  User, Code, Palette, Gamepad2, Database, Users, Plus, Save, Trash2, ExternalLink, X,
+  User, Code, Palette, Gamepad2, Database, Users, Plus, Save, ExternalLink, X,
   Mail, ShieldCheck, Send, Lock, Loader2, CheckCircle2, AtSign, Bug, Megaphone, PenTool,
   Briefcase, TrendingUp, DollarSign, Award, MapPin, MessageSquare, Wrench, Monitor, Globe,
   Github, Linkedin, Twitter, Instagram, Search, Filter, Clock, Languages,
@@ -249,7 +249,7 @@ const Header = ({ activeTab, setActiveTab, totalMembers }) => (
   </header>
 );
 
-const MemberCard = ({ member }) => {
+const MemberCard = ({ member, onSelect }) => {
   // Support both Supabase 'roles' and local 'role' properties
   const roles = Array.isArray(member.roles) ? member.roles : (Array.isArray(member.role) ? member.role : [member.role]);
   const mainRoleId = roles[0];
@@ -261,100 +261,82 @@ const MemberCard = ({ member }) => {
   const availInfo = AVAILABILITY.find(a => a.id === member.availability);
 
   return (
-    <div className="group relative bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/50 hover:border-indigo-500/30 rounded-xl p-4 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-900/10 flex flex-col h-full backdrop-blur-sm">
-      {/* HEADER */}
-      <div className="flex justify-between items-start mb-3">
-        <div className={`p-2.5 rounded-xl ${mainRoleInfo.bg} ${mainRoleInfo.color} border ${mainRoleInfo.border}`}>
-          {mainRoleInfo.icon}
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border ${statusInfo.color}`}>{statusInfo.label}</span>
-          <div className="flex gap-2 text-xs text-slate-500">
-            {member.location && <span className="flex items-center gap-1"><MapPin size={10} /> {member.location}</span>}
-            {availInfo && <span className="flex items-center gap-1"><Clock size={10} /> {availInfo.label}</span>}
+    <div className="group relative bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/50 hover:border-indigo-500/30 rounded-xl p-4 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-900/10 flex flex-col h-full backdrop-blur-sm overflow-hidden">
+      <div className="cursor-pointer flex flex-col flex-grow" onClick={() => onSelect(member)}>
+        {/* HEADER */}
+        <div className="flex justify-between items-start mb-3">
+          <div className={`p-2.5 rounded-xl ${mainRoleInfo.bg} ${mainRoleInfo.color} border ${mainRoleInfo.border}`}>
+            {mainRoleInfo.icon}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border ${statusInfo.color}`}>{statusInfo.label}</span>
+            <div className="flex gap-2 text-xs text-slate-500">
+              {member.location && <span className="flex items-center gap-1"><MapPin size={10} /> {member.location}</span>}
+              {availInfo && <span className="flex items-center gap-1"><Clock size={10} /> {availInfo.label}</span>}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* INFO */}
-      <div className="mb-3">
-        <h3 className="text-lg font-bold text-slate-100">{member.name}</h3>
+        {/* INFO */}
+        <div className="mb-3">
+          <h3 className="text-lg font-bold text-slate-100 group-hover:text-indigo-400 transition-colors">{member.name}</h3>
 
-        {/* Main Role Label */}
-        <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-          <span className="font-bold text-indigo-400 uppercase text-[10px] tracking-wide border border-indigo-500/30 px-1.5 py-0.5 rounded bg-indigo-500/10">ANA ROL</span>
-          <span className="font-medium text-slate-200">{mainRoleInfo.label}</span>
-          <span className="w-1 h-1 rounded-full bg-slate-600" />
-          <span>{levelInfo?.label}</span>
+          {/* Main Role Label */}
+          <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+            <span className="font-bold text-indigo-400 uppercase text-[10px] tracking-wide border border-indigo-500/30 px-1.5 py-0.5 rounded bg-indigo-500/10">ANA ROL</span>
+            <span className="font-medium text-slate-200">{mainRoleInfo.label}</span>
+            <span className="w-1 h-1 rounded-full bg-slate-600" />
+            <span>{levelInfo?.label}</span>
+          </div>
+
+          {/* Side Roles Tags */}
+          {sideRoleIds.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {sideRoleIds.map(rid => {
+                const rInfo = ROLES.find(r => r.id === rid);
+                if (!rInfo) return null;
+                return (
+                  <span key={rid} className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${rInfo.color} ${rInfo.bg} ${rInfo.border} flex items-center gap-1 opacity-80`}>
+                    {rInfo.icon && React.cloneElement(rInfo.icon, { size: 10 })} {rInfo.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Side Roles Tags */}
-        {sideRoleIds.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {sideRoleIds.map(rid => {
-              const rInfo = ROLES.find(r => r.id === rid);
-              if (!rInfo) return null;
-              return (
-                <span key={rid} className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${rInfo.color} ${rInfo.bg} ${rInfo.border} flex items-center gap-1 opacity-80`}>
-                  {rInfo.icon && React.cloneElement(rInfo.icon, { size: 10 })} {rInfo.label}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
+        {/* BIO */}
+        <p className="text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed flex-grow">{member.bio}</p>
 
-      {/* DISCORD & WHATSAPP ROW */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        {member.discord && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/50 rounded-lg border border-slate-800 w-fit">
-            <MessageSquare size={12} className="text-indigo-400" />
-            <span className="text-xs font-mono text-indigo-200">{member.discord}</span>
-          </div>
-        )}
-        {member.languages && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-950/50 rounded-lg border border-slate-800 w-fit">
-            <Globe size={12} className="text-slate-400" />
-            <span className="text-xs text-slate-300">{member.languages}</span>
-          </div>
-        )}
-      </div>
+        {/* INVESTMENT BUDGET (FOR INVESTORS) */}
+        {
+          (member.investment_budget || member.investmentBudget) && roles.includes('investor') && (
+            <div className="mb-4 p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
+              <p className="text-[10px] text-green-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><DollarSign size={10} /> Yatırım Bütçesi</p>
+              <p className="text-xs text-green-200 font-medium">{member.investment_budget || member.investmentBudget}</p>
+            </div>
+          )
+        }
 
-      {/* BIO */}
-      <p className="text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed flex-grow">{member.bio}</p>
-
-      {/* INVESTMENT BUDGET (FOR INVESTORS) */}
-      {
-        (member.investment_budget || member.investmentBudget) && roles.includes('investor') && (
-          <div className="mb-4 p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
-            <p className="text-[10px] text-green-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1"><DollarSign size={10} /> Yatırım Bütçesi</p>
-            <p className="text-xs text-green-200 font-medium">{member.investment_budget || member.investmentBudget}</p>
-          </div>
-        )
-      }
-
-      {/* SKILLS & ENGINES */}
-      <div className="space-y-2 mb-4">
-        {member.skills && (
-          <div className="flex flex-wrap gap-1.5">
-            <div className="text-[10px] text-slate-500 font-bold w-full uppercase tracking-tighter">Yetenekler</div>
-            <span className="text-[10px] text-indigo-300/80 bg-indigo-500/5 px-2 py-0.5 rounded border border-indigo-500/10 italic">{member.skills}</span>
-          </div>
-        )}
-
-        {member.engines && member.engines.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            <div className="text-[10px] text-slate-500 font-bold w-full uppercase tracking-tighter">Araçlar</div>
-            {member.engines.slice(0, 5).map((engine, idx) => (
-              <span key={idx} className="text-[10px] font-medium bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">{engine}</span>
-            ))}
-            {member.engines.length > 5 && <span className="text-[10px] text-slate-500">+{member.engines.length - 5}</span>}
-          </div>
-        )}
+        {/* SKILLS & ENGINES */}
+        <div className="space-y-2 mb-4">
+          {member.skills && (
+            <div className="flex flex-wrap gap-1.5">
+              <div className="text-[10px] text-slate-500 font-bold w-full uppercase tracking-tighter">Yetenekler</div>
+              <span className="text-[10px] text-indigo-300/80 bg-indigo-500/5 px-2 py-0.5 rounded border border-indigo-500/10 italic truncate max-w-full block">{member.skills}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* FOOTER / SOCIALS */}
       <div className="mt-auto pt-3 border-t border-slate-700/50 flex flex-col gap-3">
+        <button
+          onClick={() => onSelect(member)}
+          className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-all border border-slate-700 border-dashed"
+        >
+          Detayları Gör
+        </button>
         {/* Contact Button */}
         {(member.whatsapp) && (
           <a
@@ -366,20 +348,173 @@ const MemberCard = ({ member }) => {
             <MessageCircle size={16} /> WhatsApp ile Mesaj At
           </a>
         )}
+      </div>
+    </div>
+  );
+};
 
-        <div className="flex gap-2">
-          {member.socials?.github && <a href={member.socials.github} target="_blank" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors" title="GitHub"><Github size={14} /></a>}
-          {member.socials?.artstation && <a href={member.socials.artstation} target="_blank" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors" title="ArtStation"><Palette size={14} /></a>}
-          {member.socials?.linkedin && <a href={member.socials.linkedin} target="_blank" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors" title="LinkedIn"><Linkedin size={14} /></a>}
-          {member.socials?.twitter && <a href={member.socials.twitter} target="_blank" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors" title="Twitter"><Twitter size={14} /></a>}
-          {member.portfolio && (
-            <a href={member.portfolio} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all shadow-lg shadow-indigo-900/20">
-              <ExternalLink size={14} /> Web Portfolio
+const MemberDetailModal = ({ member, onClose }) => {
+  if (!member) return null;
+
+  const roles = Array.isArray(member.roles) ? member.roles : (Array.isArray(member.role) ? member.role : [member.role]);
+  const mainRoleId = roles[0];
+  const sideRoleIds = roles.slice(1);
+  const mainRoleInfo = ROLES.find(r => r.id === mainRoleId) || ROLES[1];
+  const levelInfo = LEVELS.find(l => l.id === member.level);
+  const statusInfo = WORK_STATUSES.find(s => s.id === (member.work_status || member.workStatus)) || WORK_STATUSES[0];
+  const availInfo = AVAILABILITY.find(a => a.id === member.availability);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
+      <div
+        className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header Image/Pattern */}
+        <div className="h-32 bg-gradient-to-br from-indigo-900 to-purple-900 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 bg-slate-950/50 text-white rounded-full hover:bg-slate-950 transition-colors z-10"
+          >
+            <X size={20} />
+          </button>
+          <div className="absolute -bottom-12 left-8 p-1 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
+            <div className={`p-6 rounded-xl ${mainRoleInfo.bg} ${mainRoleInfo.color} border ${mainRoleInfo.border}`}>
+              {React.cloneElement(mainRoleInfo.icon, { size: 48 })}
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="pt-16 px-8 pb-8 overflow-y-auto no-scrollbar">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-1">{member.name}</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-xs font-bold px-2 py-1 rounded border uppercase tracking-wider ${statusInfo.color}`}>{statusInfo.label}</span>
+                <span className="text-sm text-slate-400 flex items-center gap-1"><MapPin size={14} /> {member.location || 'Bilinmiyor'}</span>
+                <span className="text-sm text-slate-400 flex items-center gap-1"><Clock size={14} /> {availInfo?.label || 'Belirtilmedi'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-6">
+              <section>
+                <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <User size={16} /> Biyografi
+                </h4>
+                <p className="text-slate-300 leading-relaxed whitespace-pre-wrap text-base">
+                  {member.bio || 'Bu üye henüz bir biyografi eklememiş.'}
+                </p>
+              </section>
+
+              {member.skills && (
+                <section>
+                  <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Wrench size={16} /> Yetenekler
+                  </h4>
+                  <p className="text-slate-300 bg-slate-950 border border-slate-800 p-4 rounded-xl text-sm italic">
+                    {member.skills}
+                  </p>
+                </section>
+              )}
+
+              {member.engines && member.engines.length > 0 && (
+                <section>
+                  <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Database size={16} /> Kullanılan Araçlar & Motorlar
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {member.engines.map((engine, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-lg text-xs font-medium">
+                        {engine}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              <section>
+                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Detaylar</h4>
+                <div className="space-y-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Deneyim Seviyesi</span>
+                    <span className="text-sm text-slate-200 font-medium">{levelInfo?.label || 'Belirtilmedi'}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Diller</span>
+                    <span className="text-sm text-slate-200 font-medium">{member.languages || 'Belirtilmedi'}</span>
+                  </div>
+                  {member.investment_budget && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-green-500 uppercase font-bold">Yatırım Bütçesi</span>
+                      <span className="text-sm text-green-200 font-bold">{member.investment_budget}</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section>
+                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Bağlantılar</h4>
+                <div className="flex flex-col gap-2">
+                  {member.discord && (
+                    <div className="flex items-center gap-2 p-2 bg-slate-950 rounded-lg border border-slate-800">
+                      <MessageSquare size={14} className="text-indigo-400" />
+                      <span className="text-xs font-mono text-slate-300 truncate">{member.discord}</span>
+                    </div>
+                  )}
+                  {member.socials?.github && (
+                    <a href={member.socials.github} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
+                      <Github size={14} className="text-white" />
+                      <span className="text-xs text-slate-300">GitHub</span>
+                    </a>
+                  )}
+                  {member.socials?.artstation && (
+                    <a href={member.socials.artstation} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
+                      <Palette size={14} className="text-pink-400" />
+                      <span className="text-xs text-slate-300">ArtStation</span>
+                    </a>
+                  )}
+                  {member.socials?.linkedin && (
+                    <a href={member.socials.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-slate-950 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors">
+                      <Linkedin size={14} className="text-blue-400" />
+                      <span className="text-xs text-slate-300">LinkedIn</span>
+                    </a>
+                  )}
+                  {member.portfolio && (
+                    <a href={member.portfolio} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-indigo-600/10 hover:bg-indigo-600/20 rounded-lg border border-indigo-500/30 transition-colors">
+                      <ExternalLink size={14} className="text-indigo-400" />
+                      <span className="text-xs font-bold text-indigo-400">Web Portfolyo</span>
+                    </a>
+                  )}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        {/* Static Footer in Modal */}
+        <div className="p-6 bg-slate-950 border-t border-slate-800 mt-auto">
+          {member.whatsapp ? (
+            <a
+              href={`https://wa.me/${member.whatsapp.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-3 py-4 text-sm font-bold text-white bg-green-600 hover:bg-green-500 rounded-2xl transition-all shadow-xl shadow-green-900/20 active:scale-[0.98]"
+            >
+              <MessageCircle size={20} /> WhatsApp ile Mesaj At
             </a>
+          ) : (
+            <div className="w-full py-4 text-center text-slate-500 text-sm italic border border-slate-800 rounded-2xl">
+              Bu üye iletişim bilgisi paylaşmamış.
+            </div>
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 
@@ -591,6 +726,7 @@ export default function GameDevNetworkApp() {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
 
   useEffect(() => {
     // 1. Initial Fetch
@@ -635,8 +771,6 @@ export default function GameDevNetworkApp() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'igdwebmemberssite' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           setMembers(prev => [payload.new, ...prev]);
-        } else if (payload.eventType === 'DELETE') {
-          setMembers(prev => prev.filter(m => m.id !== payload.old.id));
         } else if (payload.eventType === 'UPDATE') {
           setMembers(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
         }
@@ -710,16 +844,21 @@ export default function GameDevNetworkApp() {
 
   // FILTER LOGIC
   const filteredMembers = members.filter(member => {
+    if (!member) return false;
+
     // Support both Supabase 'roles' and local 'role' properties
-    const memberRoles = Array.isArray(member.roles) ? member.roles : (Array.isArray(member.role) ? member.role : [member.role]);
+    const rolesSource = member.roles || member.role || [];
+    const memberRoles = Array.isArray(rolesSource) ? rolesSource : [rolesSource];
 
     const matchesRole = filterRole === 'all' || memberRoles.includes(filterRole);
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = member.name.toLowerCase().includes(searchLower) ||
-      member.skills?.toLowerCase().includes(searchLower) ||
-      member.location?.toLowerCase().includes(searchLower) ||
-      member.engines?.some(e => e.toLowerCase().includes(searchLower));
-    return matchesRole && matchesSearch;
+    const searchLower = (searchTerm || '').toLowerCase();
+
+    const nameMatch = (member.name || '').toLowerCase().includes(searchLower);
+    const skillsMatch = (member.skills || '').toLowerCase().includes(searchLower);
+    const locationMatch = (member.location || '').toLowerCase().includes(searchLower);
+    const enginesMatch = Array.isArray(member.engines) && member.engines.some(e => e?.toLowerCase().includes(searchLower));
+
+    return matchesRole && (nameMatch || skillsMatch || locationMatch || enginesMatch);
   });
 
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-indigo-500"><Loader2 className="animate-spin" size={32} /></div>;
@@ -770,7 +909,7 @@ export default function GameDevNetworkApp() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                 {filteredMembers.map(member => (
-                  <MemberCard key={member.id} member={member} />
+                  <MemberCard key={member.id} member={member} onSelect={setSelectedMember} />
                 ))}
               </div>
             )}
@@ -779,6 +918,9 @@ export default function GameDevNetworkApp() {
           <JoinForm onSave={handleSaveMember} onCancel={() => setActiveTab('network')} />
         )}
       </main>
+
+      <MemberDetailModal member={selectedMember} onClose={() => setSelectedMember(null)} />
+
       <StickyFooter onExport={handleExportJSON} />
     </div>
   );
