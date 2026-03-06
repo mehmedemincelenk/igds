@@ -1,0 +1,738 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+User, Code, Palette, Gamepad2, Database, Users, Plus, Save, Trash2, ExternalLink, X,
+Mail, ShieldCheck, Send, Lock, Loader2, CheckCircle2, AtSign, Bug, Megaphone, PenTool,
+Briefcase, TrendingUp, DollarSign, Award, MapPin, MessageSquare, Wrench, Monitor, Globe,
+Github, Linkedin, Twitter, Instagram, Search, Filter, Clock, Languages
+} from 'lucide-react';
+
+// NOT: Projeyi kendi bilgisayarında çalıştıracaksan terminale şunu yaz:
+// npm install @emailjs/browser
+// Sonra aşağıdaki satırın başındaki // işaretini kaldır:
+// import emailjs from '@emailjs/browser';
+
+/**
+* --- EMAILJS ENTEGRASYON AYARLARI ---
+* Güvenlik Notu: Public Key'inizi asla GitHub gibi herkese açık yerlere yüklemeyin.
+* Yerel çalışırken .env dosyası kullanın: VITE_EMAILJS_PUBLIC_KEY=...
+*/
+const EMAIL_CONFIG = {
+// Geliştirme aşamasında 'true' yapın, canlıya alırken 'false' yapın.
+// 'false' olduğunda gerçek mail atar (Public Key girilmişse).
+USE_MOCK: false,
+
+SERVICE_ID: 'service_5sdj2ym', // Kullanıcı tarafından sağlanan Service ID
+TEMPLATE_ID: 'template_759d79r', // Kullanıcı tarafından sağlanan Template ID
+
+// BURAYA DİKKAT: EmailJS panelinden -> Account -> Public Key'inizi alıp buraya yapıştırın.
+// Eğer .env kullanıyorsanız: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+PUBLIC_KEY: 'rkp_NguO_QN0Hp3c3'
+};
+
+// --- DATA CONSTANTS ---
+
+const ROLES = [
+{ id: 'all', label: 'Tümü', icon:
+<Users size={16} />, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
+{ id: 'dev', label: 'Yazılım', icon: <Code size={16} />, color: 'text-blue-400', bg: 'bg-blue-500/10', border:
+'border-blue-500/20' },
+{ id: 'art', label: 'Sanat', icon:
+<Palette size={16} />, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+{ id: 'design', label: 'Tasarım', icon:
+<Gamepad2 size={16} />, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+{ id: 'sound', label: 'Ses', icon:
+<User size={16} />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+{ id: 'prod', label: 'Prod.', icon:
+<Database size={16} />, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+{ id: 'qa', label: 'QA', icon:
+<Bug size={16} />, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+{ id: 'marketing', label: 'Pazarlama', icon:
+<Megaphone size={16} />, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+{ id: 'writer', label: 'Yazar', icon:
+<PenTool size={16} />, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+{ id: 'biz', label: 'BizDev', icon:
+<TrendingUp size={16} />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+{ id: 'investor', label: 'Yatırımcı', icon:
+<Briefcase size={16} />, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
+];
+
+const LEVELS = [
+{ id: 'student', label: 'Öğrenci / Stajyer' },
+{ id: 'junior', label: 'Junior (Başlangıç)' },
+{ id: 'mid', label: 'Mid-Level (Orta)' },
+{ id: 'senior', label: 'Senior (Kıdemli)' },
+{ id: 'lead', label: 'Lead / Direktör' },
+{ id: 'founder', label: 'Stüdyo Kurucusu' },
+{ id: 'investor', label: 'Yatırımcı / VC' },
+];
+
+const WORK_STATUSES = [
+{ id: 'open', label: 'İş / Proje Arıyor', color: 'text-green-400 border-green-500/30 bg-green-500/10' },
+{ id: 'freelance', label: 'Freelance Açık', color: 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10' },
+{ id: 'hiring', label: 'Ekip Arkadaşı Arıyor', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+{ id: 'employed', label: 'Çalışıyor (Kapalı)', color: 'text-slate-400 border-slate-500/30 bg-slate-500/10' },
+{ id: 'investing', label: 'Yatırım Yapıyor', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+];
+
+const AVAILABILITY = [
+{ id: 'full', label: 'Full-time' },
+{ id: 'part', label: 'Part-time (20h+)' },
+{ id: 'side', label: 'Haftasonu / Hobi (<10h)' }, { id: 'project' , label: 'Proje Bazlı' }, ]; const
+    POPULAR_ENGINES=["Unity", "Unreal Engine" , "Godot" , "Gamemaker" , "Custom Engine" , "Construct" , "Roblox" ];
+    const POPULAR_TOOLS=["Blender", "Maya" , "3ds Max" , "ZBrush" , "Photoshop" , "Substance" , "FMOD" , "Wwise"
+    , "Jira" , "GitHub" , "Figma" ]; const GENRES=["RPG", "FPS/TPS" , "Hypercasual" , "Strategy" , "Puzzle"
+    , "Simulation" , "Metroidvania" , "Visual Novel" , "VR/AR" , "MMO" , "Roguelike" ]; const INITIAL_DATA=[ { id:
+    1715692000001, name: "Ada Lovelace" , role: "dev" , level: "senior" , workStatus: "freelance" , availability: "full"
+    , location: "İstanbul, TR" , languages: "TR, EN" , discord: "ada_dev#1234" , socials: { github: "https://github.com"
+    , linkedin: "https://linkedin.com" }, engines: ["Unity", "Custom Engine" ], genres: ["Simulation", "Strategy" ],
+    skills: "C#, Shader Graph, Optimization, Math" ,
+    bio: "Gameplay programlama ve fizik motorları üzerine yoğunlaşıyorum. Matematik kökenliyim." ,
+    email: "ada@gamedev.net" , }, { id: 1715692000002, name: "Hideo K." , role: "design" , level: "lead" ,
+    workStatus: "hiring" , availability: "project" , location: "Remote / Tokyo" , languages: "JP, EN" ,
+    discord: "hideogames#0001" , socials: { twitter: "https://twitter.com" , artstation: "https://artstation.com" },
+    engines: ["Unreal Engine"], genres: ["RPG", "Cinematic" ], skills: "Level Design, Narrative, World Building" ,
+    bio: "Sinematik deneyimler ve karmaşık hikayeler yaratacak ekip arkadaşları arıyorum." , email: "hideo@kojima.jp" ,
+    }, { id: 1715692000003, name: "Bruce W." , role: "investor" , level: "investor" , workStatus: "investing" ,
+    availability: "side" , location: "Gotham / US" , languages: "EN" , discord: "bruce_way#9999" , socials: {
+    linkedin: "https://linkedin.com" }, engines: [], genres: ["VR/AR", "Tech Demo" ],
+    skills: "Finans, Strateji, Networking, Pre-Seed" ,
+    bio: "Erken aşama oyun stüdyolarına tohum yatırımı yapıyorum. Teknoloji odaklı projelere ilgim var." ,
+    email: "bruce@wayne-ent.com" , investmentBudget: "50k$ - 250k$" } ]; /** * SERVICE LAYER * Görev: E-posta doğrulama
+    işlemlerini yönetir. */ const EmailService={ isValidEmail: (email)=> /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+
+    // İstenilen Fonksiyon Yapısı: sendVerificationCode(userEmail, userName, code)
+    sendVerificationCode: async (userEmail, userName, code) => {
+    // 1. Simülasyon Modu (Geliştirme için)
+    if (EMAIL_CONFIG.USE_MOCK) {
+    return new Promise((resolve) => {
+    setTimeout(() => {
+    alert(`[SİMÜLASYON MODU]\n\nAlıcı: ${userEmail}\nSayın: ${userName}\nDoğrulama Kodu: ${code}\n\n(Bu mesajı
+    görüyorsanız mock modu aktiftir.)`);
+    console.log(`[EMAIL-MOCK] Kod: ${code} -> ${userEmail}`);
+    resolve({ success: true, serverCode: code });
+    }, 1200);
+    });
+    }
+
+    // 2. Gerçek EmailJS Gönderimi
+    try {
+    // Şablon değişkenlerini hazırlıyoruz
+    const templateParams = {
+    email: userEmail, // {{email}}
+    to_name: userName, // {{to_name}}
+    message: code // {{message}}
+    };
+
+    console.log("EmailJS servisine bağlanılıyor...", templateParams);
+
+    // NOT: 'emailjs' kütüphanesi yüklendiğinde aşağıdaki yorum satırlarını açın.
+    /*
+    const response = await emailjs.send(
+    EMAIL_CONFIG.SERVICE_ID,
+    EMAIL_CONFIG.TEMPLATE_ID,
+    templateParams,
+    EMAIL_CONFIG.PUBLIC_KEY
+    );
+
+    if (response.status === 200) {
+    console.log('E-posta başarıyla gönderildi!', response);
+    return { success: true, serverCode: code };
+    }
+    */
+
+    // --- GEÇİCİ KOD (Kütüphane yokken hata vermesin diye) ---
+    // Eğer Public Key girilmemişse uyarı ver
+    if (EMAIL_CONFIG.PUBLIC_KEY === 'rkp_NguO_QN0Hp3c3') {
+    console.error("HATA: Public Key yapılandırılmamış. Lütfen EMAIL_CONFIG ayarlarını kontrol edin.");
+    alert("Sistem Hatası: E-posta servisi yapılandırılmamış (Public Key eksik).");
+    return { success: false };
+    }
+
+    // Kütüphane olmadığı için simüle ediyoruz ama gerçek yapı bu şekilde olmalı.
+    console.log("[EMAILJS-SIMULATION] Gerçek kütüphane yüklendiğinde bu kod çalışacak.");
+    return { success: true, serverCode: code };
+    // -------------------------------------------------------
+
+    } catch (error) {
+    console.error("EMAILJS HATASI:", error);
+    alert("E-posta gönderimi başarısız oldu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar
+    deneyin.");
+    return { success: false };
+    }
+    }
+    };
+
+    /**
+    * UI COMPONENTS
+    */
+    const OtpInput = ({ length = 4, onComplete, resetTrigger }) => {
+    const [otp, setOtp] = useState(new Array(length).fill(""));
+    const inputRefs = useRef([]);
+
+    useEffect(() => { if (inputRefs.current[0]) inputRefs.current[0].focus(); }, []);
+    useEffect(() => { setOtp(new Array(length).fill("")); if (inputRefs.current[0]) inputRefs.current[0].focus(); },
+    [resetTrigger]);
+
+    const handleChange = (index, e) => {
+    const value = e.target.value; if (isNaN(value)) return;
+    const newOtp = [...otp]; newOtp[index] = value.substring(value.length - 1); setOtp(newOtp);
+    const combinedOtp = newOtp.join(""); if (combinedOtp.length === length) onComplete(combinedOtp);
+    if (value && index < length - 1 && inputRefs.current[index + 1]) inputRefs.current[index + 1].focus(); }; const
+        handleKeyDown=(index, e)=> {
+        if (e.key === "Backspace" && !otp[index] && index > 0 && inputRefs.current[index - 1]) inputRefs.current[index -
+        1].focus();
+        };
+
+        return (
+        <div className="flex gap-2 justify-center my-3">
+            {otp.map((value, index) => (
+            <input key={index} ref={(input)=> (inputRefs.current[index] = input)} type="text" inputMode="numeric"
+            maxLength={1} value={value} onChange={(e) => handleChange(index, e)} onKeyDown={(e) => handleKeyDown(index,
+            e)} className="w-10 h-12 bg-slate-900 border border-indigo-500/30 rounded-lg text-center text-lg font-bold
+            text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+            ))}
+        </div>
+        );
+        };
+
+        const Header = ({ activeTab, setActiveTab, totalMembers }) => (
+        <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div
+                        className="p-2.5 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                        <Gamepad2 className="text-white" size={24} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-white tracking-tight leading-none">GameDev<span
+                                className="text-indigo-400">Network</span></h1>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+                            <Globe size={10} /> {totalMembers} Aktif Üye
+                        </p>
+                    </div>
+                </div>
+                <nav className="flex gap-2">
+                    <button onClick={()=> setActiveTab('network')} className={`flex items-center gap-2 px-4 py-2
+                        rounded-lg text-sm font-medium transition-all ${activeTab === 'network' ? 'bg-slate-800
+                        text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}>
+                        <Users size={18} /> <span className="hidden sm:inline">Ağ</span>
+                    </button>
+                    <button onClick={()=> setActiveTab('join')} className={`flex items-center gap-2 px-4 py-2 rounded-lg
+                        text-sm font-medium transition-all ${activeTab === 'join' ? 'bg-indigo-600 text-white shadow-lg
+                        shadow-indigo-500/25' : 'text-slate-400 hover:text-white hover:bg-slate-900'}`}>
+                        <Plus size={18} /> <span className="hidden sm:inline">Katıl</span>
+                    </button>
+                </nav>
+            </div>
+        </header>
+        );
+
+        const MemberCard = ({ member, onDelete }) => {
+        const roleInfo = ROLES.find(r => r.id === member.role) || ROLES[1];
+        const levelInfo = LEVELS.find(l => l.id === member.level);
+        const statusInfo = WORK_STATUSES.find(s => s.id === member.workStatus) || WORK_STATUSES[0];
+        const availInfo = AVAILABILITY.find(a => a.id === member.availability);
+
+        return (
+        <div
+            className="group relative bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/50 hover:border-indigo-500/30 rounded-2xl p-5 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-900/10 flex flex-col h-full backdrop-blur-sm">
+            {/* HEADER */}
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-2.5 rounded-xl ${roleInfo.bg} ${roleInfo.color} border ${roleInfo.border}`}>
+                    {roleInfo.icon}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border
+                        ${statusInfo.color}`}>{statusInfo.label}</span>
+                    <div className="flex gap-2 text-xs text-slate-500">
+                        {member.location && <span className="flex items-center gap-1">
+                            <MapPin size={10} /> {member.location}
+                        </span>}
+                        {availInfo && <span className="flex items-center gap-1">
+                            <Clock size={10} /> {availInfo.label}
+                        </span>}
+                    </div>
+                </div>
+            </div>
+
+            {/* INFO */}
+            <div className="mb-3">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-slate-100">{member.name}</h3>
+                    <button onClick={()=> onDelete(member.id)} className="text-slate-700 hover:text-red-400
+                        transition-colors opacity-0 group-hover:opacity-100 p-1">
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                    <span className="font-medium text-slate-300">{roleInfo.label}</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-600" />
+                    <span>{levelInfo?.label}</span>
+                    {member.languages && <><span className="w-1 h-1 rounded-full bg-slate-600" /><span
+                            className="flex items-center gap-1">
+                            <Languages size={10} /> {member.languages}
+                        </span></>}
+                </div>
+            </div>
+
+            {/* DISCORD */}
+            {member.discord && (
+            <div
+                className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-slate-950/50 rounded-lg border border-slate-800 w-fit">
+                <MessageSquare size={12} className="text-indigo-400" />
+                <span className="text-xs font-mono text-indigo-200">{member.discord}</span>
+            </div>
+            )}
+
+            {/* BIO */}
+            <p className="text-slate-400 text-sm mb-4 line-clamp-3 leading-relaxed flex-grow">{member.bio}</p>
+
+            {/* TAGS */}
+            {member.engines && member.engines.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+                {member.engines.slice(0, 3).map((engine, idx) => (
+                <span key={idx}
+                    className="text-[10px] font-medium bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">{engine}</span>
+                ))}
+                {member.engines.length > 3 && <span className="text-[10px] text-slate-500">+{member.engines.length -
+                    3}</span>}
+            </div>
+            )}
+
+            {/* INVESTOR BUDGET */}
+            {member.role === 'investor' && member.investmentBudget && (
+            <div className="mb-4 px-3 py-2 bg-green-900/20 border border-green-500/20 rounded-lg">
+                <p
+                    className="text-[10px] text-green-400 font-bold uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                    <DollarSign size={10} /> Yatırım Bütçesi
+                </p>
+                <p className="text-sm font-mono text-green-200">{member.investmentBudget}</p>
+            </div>
+            )}
+
+            {/* FOOTER / SOCIALS */}
+            <div className="mt-auto pt-3 border-t border-slate-700/50 flex gap-2">
+                {member.socials?.github && <a href={member.socials.github} target="_blank"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors">
+                    <Github size={14} />
+                </a>}
+                {member.socials?.artstation && <a href={member.socials.artstation} target="_blank"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors">
+                    <Palette size={14} />
+                </a>}
+                {member.socials?.linkedin && <a href={member.socials.linkedin} target="_blank"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors">
+                    <Linkedin size={14} />
+                </a>}
+                {member.socials?.twitter && <a href={member.socials.twitter} target="_blank"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors">
+                    <Twitter size={14} />
+                </a>}
+                {member.socials?.instagram && <a href={member.socials.instagram} target="_blank"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-white transition-colors">
+                    <Instagram size={14} />
+                </a>}
+                {member.portfolio && (
+                <a href={member.portfolio} target="_blank" rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-all shadow-lg shadow-indigo-900/20">
+                    <ExternalLink size={14} /> Web
+                </a>
+                )}
+            </div>
+        </div>
+        );
+        };
+
+        const JoinForm = ({ onSave, onCancel }) => {
+        const [formData, setFormData] = useState({
+        name: '', email: '', role: 'dev', level: 'student', workStatus: 'open', availability: 'full',
+        location: '', languages: '', discord: '', skills: '', bio: '', portfolio: '',
+        socials: { github: '', linkedin: '', twitter: '', artstation: '', instagram: '' },
+        engines: [], genres: [], investmentBudget: ''
+        });
+
+        const [verificationState, setVerificationState] = useState('idle');
+        const [serverOtp, setServerOtp] = useState(null);
+        const [errorMsg, setErrorMsg] = useState('');
+        const [resetOtpTrigger, setResetOtpTrigger] = useState(0);
+
+        const toggleSelection = (field, item) => {
+        setFormData(prev => {
+        const list = prev[field] || [];
+        return list.includes(item) ? { ...prev, [field]: list.filter(i => i !== item) } : { ...prev, [field]: [...list,
+        item] };
+        });
+        };
+
+        const handleSocialChange = (platform, value) => {
+        setFormData(prev => ({ ...prev, socials: { ...prev.socials, [platform]: value } }));
+        };
+
+        const handleEmailChange = (e) => {
+        setFormData({...formData, email: e.target.value});
+        if (verificationState !== 'idle') { setVerificationState('idle'); setServerOtp(null); setErrorMsg(''); }
+        };
+
+        const startVerification = async () => {
+        if (!EmailService.isValidEmail(formData.email)) { setErrorMsg("Geçerli bir e-posta adresi giriniz."); return; }
+        setVerificationState('sending'); setErrorMsg('');
+        try {
+        const result = await EmailService.sendVerificationCode(formData.email, formData.name || "Geliştirici");
+        if (result.success) { setServerOtp(result.serverCode); setVerificationState('waiting'); setResetOtpTrigger(prev
+        => prev + 1); }
+        } catch (err) { setErrorMsg("Servis hatası."); setVerificationState('idle'); }
+        };
+
+        const handleOtpComplete = (enteredCode) => {
+        if (enteredCode === serverOtp) { setVerificationState('verified'); setErrorMsg(''); }
+        else { setErrorMsg("Hatalı kod."); setResetOtpTrigger(prev => prev + 1); }
+        };
+
+        const handleSubmit = (e) => { e.preventDefault(); if (verificationState !== 'verified') return;
+        onSave(formData); };
+
+        return (
+        <div
+            className="max-w-5xl mx-auto bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl shadow-black animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden">
+            <div className="bg-slate-950/50 p-6 border-b border-slate-800 flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <Plus className="text-indigo-400" /> Aramıza Katıl
+                    </h2>
+                    <p className="text-slate-400 text-sm mt-1">Geleceğin oyun stüdyosunda yerini al.</p>
+                </div>
+                <button onClick={onCancel} className="text-slate-500 hover:text-white transition-colors">
+                    <X size={24} />
+                </button>
+            </div>
+
+            <div className="p-6 md:p-8">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-5">
+                            <h3
+                                className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                                <ShieldCheck size={16} /> Kimlik
+                            </h3>
+                            <div>
+                                <label className="form-label text-sm text-slate-300 block mb-1.5">İsim Soyisim</label>
+                                <input required type="text"
+                                    className="form-input w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2.5 outline-none focus:border-indigo-500"
+                                    placeholder="Adınız" value={formData.name} onChange={e=> setFormData({...formData,
+                                name: e.target.value})} />
+                            </div>
+                            <div className={`p-4 rounded-xl border transition-all ${verificationState==='verified'
+                                ? 'bg-green-500/5 border-green-500/30' : 'bg-slate-950 border-slate-700' }`}>
+                                <label className="text-sm text-slate-300 block mb-2 flex justify-between">
+                                    <span>E-posta Doğrulama</span>
+                                    {verificationState === 'verified' && <span
+                                        className="text-green-400 text-xs flex items-center gap-1">
+                                        <CheckCircle2 size={12} /> Onaylı
+                                    </span>}
+                                </label>
+                                <div className="flex gap-2">
+                                    <input required type="email"
+                                        className="flex-grow bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none disabled:opacity-50"
+                                        placeholder="email@adresiniz.com" value={formData.email}
+                                        onChange={handleEmailChange} disabled={verificationState !=='idle' } />
+                                    {verificationState === 'idle' && <button type="button" onClick={startVerification}
+                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors">Kod</button>}
+                                    {verificationState === 'sending' && <button disabled
+                                        className="bg-slate-700 text-white px-4 rounded-lg">
+                                        <Loader2 className="animate-spin" size={16} />
+                                    </button>}
+                                </div>
+                                {verificationState === 'waiting' && <div className="mt-3 animate-in fade-in">
+                                    <p className="text-xs text-center text-slate-400 mb-2">Gelen kodu giriniz:</p>
+                                    <OtpInput length={4} onComplete={handleOtpComplete}
+                                        resetTrigger={resetOtpTrigger} />
+                                </div>}
+                                {errorMsg && <p className="text-xs text-red-400 mt-2 text-center">{errorMsg}</p>}
+                            </div>
+                        </div>
+
+                        <div className="space-y-5">
+                            <h3
+                                className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                                <Briefcase size={16} /> Profesyonel Durum
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-sm text-slate-300 block mb-1.5">Deneyim</label><select
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500"
+                                        value={formData.level} onChange={e=> setFormData({...formData, level:
+                                        e.target.value})}>{LEVELS.map(l => <option key={l.id} value={l.id}>{l.label}
+                                        </option>)}</select></div>
+                                <div><label className="text-sm text-slate-300 block mb-1.5">Durum</label><select
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500"
+                                        value={formData.workStatus} onChange={e=> setFormData({...formData, workStatus:
+                                        e.target.value})}>{WORK_STATUSES.map(s => <option key={s.id} value={s.id}>
+                                            {s.label}</option>)}</select></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-sm text-slate-300 block mb-1.5">Müsaitlik</label><select
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500"
+                                        value={formData.availability} onChange={e=> setFormData({...formData,
+                                        availability: e.target.value})}>{AVAILABILITY.map(a => <option key={a.id}
+                                            value={a.id}>{a.label}</option>)}</select></div>
+                                <div><label className="text-sm text-slate-300 block mb-1.5">Diller</label><input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="TR, EN, JP..." value={formData.languages} onChange={e=>
+                                    setFormData({...formData, languages: e.target.value})} /></div>
+                            </div>
+                            <div><label className="text-sm text-slate-300 block mb-1.5">Konum (Şehir/Ülke)</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="İstanbul, TR" value={formData.location} onChange={e=>
+                                    setFormData({...formData, location: e.target.value})} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-800"></div>
+
+                    <div>
+                        <h3
+                            className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Wrench size={16} /> Uzmanlık & Tech Stack
+                        </h3>
+                        <label className="text-sm text-slate-300 block mb-2">Departman / Ana Rol</label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+                            {ROLES.filter(r => r.id !== 'all').map(role => (
+                            <button key={role.id} type="button" onClick={()=> setFormData({...formData, role: role.id})}
+                                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs
+                                text-center transition-all h-20 ${formData.role === role.id ? `bg-indigo-600
+                                border-indigo-500 text-white shadow-lg` : 'bg-slate-950 border-slate-800 text-slate-400
+                                hover:bg-slate-800'}`}>{role.icon}<span
+                                    className="mt-1.5 leading-tight">{role.label}</span></button>
+                            ))}
+                        </div>
+                        {formData.role === 'investor' && (<div
+                            className="mb-6 p-4 bg-green-900/10 border border-green-500/20 rounded-xl animate-in fade-in">
+                            <label className="text-sm text-green-400 font-bold block mb-1.5 flex items-center gap-1">
+                                <DollarSign size={14} /> Yatırım Bütçesi / Stratejisi
+                            </label><input type="text"
+                                className="w-full bg-slate-950 border border-green-500/30 text-white rounded-lg px-4 py-2.5 outline-none focus:border-green-500"
+                                placeholder="Örn: 50k$ - 500k$, Pre-Seed..." value={formData.investmentBudget}
+                                onChange={e=> setFormData({...formData, investmentBudget: e.target.value})} />
+                        </div>)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label className="text-sm text-slate-300 block mb-2">Kullandığın Motorlar &
+                                    Araçlar</label>
+                                <div className="flex flex-wrap gap-2">{[...POPULAR_ENGINES, ...POPULAR_TOOLS].map(tool
+                                    => (<button key={tool} type="button" onClick={()=> toggleSelection('engines', tool)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all
+                                        ${formData.engines.includes(tool) ? 'bg-indigo-500/20 border-indigo-500
+                                        text-indigo-300' : 'bg-slate-950 border-slate-700 text-slate-500
+                                        hover:border-slate-500'}`}>{tool}</button>))}</div>
+                            </div>
+                            <div><label className="text-sm text-slate-300 block mb-2">İlgilendiğin Oyun Türleri</label>
+                                <div className="flex flex-wrap gap-2">{GENRES.map(genre => (<button key={genre}
+                                        type="button" onClick={()=> toggleSelection('genres', genre)} className={`px-3
+                                        py-1.5 rounded-full text-xs font-medium border transition-all
+                                        ${formData.genres.includes(genre) ? 'bg-purple-500/20 border-purple-500
+                                        text-purple-300' : 'bg-slate-950 border-slate-700 text-slate-500
+                                        hover:border-slate-500'}`}>{genre}</button>))}</div>
+                            </div>
+                        </div>
+                        <div className="mt-4"><label className="text-sm text-slate-300 block mb-1.5">Diğer Yetenekler
+                                (Manuel Giriş)</label><input type="text"
+                                className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2.5 outline-none focus:border-indigo-500"
+                                placeholder="Jira, Agile, Scrum, Piano, Japonca..." value={formData.skills}
+                                onChange={e=> setFormData({...formData, skills: e.target.value})} /></div>
+                    </div>
+
+                    <div className="border-t border-slate-800"></div>
+
+                    {/* --- BÖLÜM 3: SOSYAL & HİKAYE --- */}
+                    <div>
+                        <h3
+                            className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <Globe size={16} /> Sosyal & İletişim
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <MessageSquare className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="Discord: user#0000" value={formData.discord} onChange={e=>
+                                    setFormData({...formData, discord: e.target.value})} />
+                                </div>
+                                <div className="relative">
+                                    <Github className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="url"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="GitHub URL" value={formData.socials.github} onChange={e=>
+                                    handleSocialChange('github', e.target.value)} />
+                                </div>
+                                <div className="relative">
+                                    <Linkedin className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="url"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="LinkedIn URL" value={formData.socials.linkedin} onChange={e=>
+                                    handleSocialChange('linkedin', e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="relative">
+                                    <ExternalLink className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="url"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="Portfolyo / Web Site URL" value={formData.portfolio} onChange={e=>
+                                    setFormData({...formData, portfolio: e.target.value})} />
+                                </div>
+                                <div className="relative">
+                                    <Palette className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="url"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="ArtStation URL" value={formData.socials.artstation} onChange={e=>
+                                    handleSocialChange('artstation', e.target.value)} />
+                                </div>
+                                <div className="relative">
+                                    <Twitter className="absolute left-3 top-2.5 text-slate-500" size={16} /><input
+                                        type="url"
+                                        className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500"
+                                        placeholder="X / Twitter URL" value={formData.socials.twitter} onChange={e=>
+                                    handleSocialChange('twitter', e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-sm text-slate-300 block mb-1.5">Kısa Biyografi</label>
+                            <textarea required rows="3"
+                                className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-3 outline-none focus:border-indigo-500 resize-none"
+                                placeholder="Kendinden bahset. Ne arıyorsun? Ne sunuyorsun?" value={formData.bio}
+                                onChange={e=> setFormData({...formData, bio: e.target.value})} />
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <button type="button" onClick={onCancel} className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-colors">Vazgeç</button>
+            <button type="submit" disabled={verificationState !== 'verified'} className="flex-[2] py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-xl shadow-indigo-900/30 transition-all flex justify-center items-center gap-2">
+              {verificationState === 'verified' ? <><Save size={20}/> Kaydı Tamamla</> : <><Lock size={20}/> Önce E-postayı Doğrula</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default function GameDevNetworkApp() {
+  const [members, setMembers] = useState([]);
+  const [activeTab, setActiveTab] = useState('network'); 
+  const [loading, setLoading] = useState(true);
+  const [filterRole, setFilterRole] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('gamedev_network_members');
+    if (storedData) { setMembers(JSON.parse(storedData)); } else { setMembers(INITIAL_DATA); localStorage.setItem('gamedev_network_members', JSON.stringify(INITIAL_DATA)); }
+    setLoading(false);
+  }, []);
+
+  const handleSaveMember = (newMemberData) => {
+    const filteredMembers = members.filter(m => m.email !== newMemberData.email);
+    const newMember = { id: Date.now(), ...newMemberData };
+    const updatedMembers = [newMember, ...filteredMembers];
+    setMembers(updatedMembers); localStorage.setItem('gamedev_network_members', JSON.stringify(updatedMembers));
+    setActiveTab('network');
+  };
+
+  const handleDeleteMember = (id) => {
+    if(window.confirm('Emin misiniz?')) {
+      const updatedMembers = members.filter(m => m.id !== id);
+      setMembers(updatedMembers); localStorage.setItem('gamedev_network_members', JSON.stringify(updatedMembers));
+    }
+  };
+
+  const handleExportJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(members, null, 2));
+    const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "gamedev_network.json"); document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
+  };
+
+  // FILTER LOGIC
+  const filteredMembers = members.filter(member => {
+    const matchesRole = filterRole === 'all' || member.role === filterRole;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = member.name.toLowerCase().includes(searchLower) || 
+                          member.skills?.toLowerCase().includes(searchLower) ||
+                          member.location?.toLowerCase().includes(searchLower) ||
+                          member.engines?.some(e => e.toLowerCase().includes(searchLower));
+    return matchesRole && matchesSearch;
+  });
+
+  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-indigo-500"><Loader2 className="animate-spin" size={32}/></div>;
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 pb-20">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+      <div className="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none z-0"></div>
+
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} totalMembers={members.length} />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        {activeTab === 'network' ? (
+          <>
+            <div className="flex flex-col gap-6 mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-end gap-4">
+                <div>
+                  <h2 className="text-4xl font-extrabold text-white tracking-tight">Topluluk Ağı</h2>
+                  <p className="text-slate-400 mt-2 text-lg">Geleceğin oyun stüdyolarını kuracak yetenekler burada.</p>
+                </div>
+                <button onClick={handleExportJSON} className="text-xs font-mono text-slate-500 hover:text-indigo-400 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg border border-slate-800 hover:border-slate-700">
+                  <Code size={12} /> .JSON VERİSİNİ İNDİR
+                </button>
+              </div>
+
+              {/* SEARCH & FILTER BAR */}
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-grow w-full md:w-auto">
+                  <Search className="absolute left-3 top-3 text-slate-500" size={18} />
+                  <input type="text" placeholder="İsim, yetenek, şehir veya oyun motoru ara..." className="w-full bg-slate-950 border border-slate-700 text-white rounded-xl pl-10 pr-4 py-2.5 outline-none focus:border-indigo-500" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                </div>
+                <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                  {ROLES.map(role => (
+                    <button key={role.id} onClick={() => setFilterRole(role.id)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${filterRole === role.id ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>
+                      {role.icon} {role.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {filteredMembers.length === 0 ? (
+              <div className="text-center py-24 bg-slate-900/50 rounded-3xl border border-dashed border-slate-800">
+                <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6"><Users className="text-slate-500" size={40} /></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Kimse Bulunamadı</h3>
+                <p className="text-slate-500 mb-8 max-w-md mx-auto">Arama kriterlerine uygun üye yok veya henüz kimse katılmadı.</p>
+                <button onClick={() => {setFilterRole('all'); setSearchTerm('')}} className="text-indigo-400 hover:text-indigo-300 underline">Filtreleri Temizle</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                {filteredMembers.map(member => (
+                  <MemberCard key={member.id} member={member} onDelete={handleDeleteMember} />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <JoinForm onSave={handleSaveMember} onCancel={() => setActiveTab('network')} />
+        )}
+      </main>
+    </div>
+  );
+}
